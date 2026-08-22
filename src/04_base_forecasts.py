@@ -5,7 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 #use cleaned load data
-cleaned_file = Path(r"C:\Users\Brian\Documents\Coding\CAISO_load_forecasting\data\caiso_loads\cleaned\historical_data\caiso_load_2022_2024_clean.csv")
+cleaned_file = Path(r"C:\Users\Brian\Documents\Coding\CAISO_load_forecasting\data\caiso_loads\cleaned\historical_data\caiso_load_2021_2024_clean.csv")
 
 historical_load = pd.read_csv(cleaned_file)
 historical_load["timestamp"] = pd.to_datetime(historical_load["timestamp"])  #ensure datetime is preserved 
@@ -24,11 +24,11 @@ mae_168 = mean_absolute_error(test_2024["caiso"], test_2024["forecast_168"])
 rmse_168 = np.sqrt(mean_squared_error(test_2024["caiso"],test_2024["forecast_168"]))
 
 print("24-hour baseline")
-print("MAE:", mape_24)
+print("MAE:", mae_24)
 print("RMSE:", rmse_24)
 
 print("\n168-hour baseline")
-print("MAE:", mape_168)
+print("MAE:", mae_168)
 print("RMSE:", rmse_168)
 
 plot_data = test_2024[

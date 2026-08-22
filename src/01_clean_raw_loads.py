@@ -60,4 +60,4 @@ historical_load = historical_load.sort_values("timestamp")
 print(historical_load[["date", "hr", "timestamp"]].head(30))
 
 #convert historical_load to clean csv and export
-historical_load.to_csv(r"C:\Users\Brian\Documents\Coding\CAISO_load_forecasting\data\caiso_loads\cleaned\historical_data\caiso_load_2022_2024_clean.csv", index=False)
+historical_load.to_csv(r"C:\Users\Brian\Documents\Coding\CAISO_load_forecasting\data\caiso_loads\cleaned\historical_data\caiso_load_2021_2024_clean.csv", index=False)

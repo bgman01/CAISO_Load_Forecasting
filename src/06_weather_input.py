@@ -52,6 +52,7 @@ print(weather.shape)
 print(weather.isna().sum())
 
 weather_file = Path(r"C:\Users\Brian\Documents\Coding\CAISO_load_forecasting\data\weather\california_weather_2021_2025.csv")
+weather_file.parent.mkdir(parents=True, exist_ok=True)
 weather.to_csv(weather_file, index=False)
 
 weather = pd.read_csv(weather_file)
