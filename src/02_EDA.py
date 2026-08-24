@@ -3,7 +3,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 #use cleaned load data
-cleaned_file = Path(r"C:\Users\Brian\Documents\Coding\CAISO_load_forecasting\data\caiso_loads\cleaned\historical_data\caiso_load_2021_2024_clean.csv")
+project_dir = Path.cwd()
+cleaned_file = project_dir / "data" / "caiso_loads" / "cleaned" / "historical_data" / "caiso_load_2021_2024_clean.csv"
 
 historical_load = pd.read_csv(cleaned_file)
 historical_load["timestamp"] = pd.to_datetime(historical_load["timestamp"])  #ensure datetime is preserved 

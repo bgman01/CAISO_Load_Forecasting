@@ -1,9 +1,9 @@
 from pathlib import Path
 import pandas as pd
 
-project_dir = Path(r"C:\Users\Brian\Documents\Coding\CAISO_load_forecasting")
-historical_dir = Path(r"C:\Users\Brian\Documents\Coding\CAISO_load_forecasting\data\caiso_loads\raw\historical_data")
-cleaned_dir = Path(r"C:\Users\Brian\Documents\Coding\CAISO_load_forecasting\data\caiso_loads\raw\validation_data")
+project_dir = Path.cwd()
+historical_dir = project_dir / "data" / "caiso_loads" / "raw" / "historical_data"
+cleaned_dir = project_dir / "data" / "caiso_loads" / "raw" / "validation_data"
 
 files = sorted(historical_dir.glob("*.xlsx"))
 
@@ -60,4 +60,4 @@ historical_load = historical_load.sort_values("timestamp")
 print(historical_load[["date", "hr", "timestamp"]].head(30))
 
 #convert historical_load to clean csv and export
-historical_load.to_csv(r"C:\Users\Brian\Documents\Coding\CAISO_load_forecasting\data\caiso_loads\cleaned\historical_data\caiso_load_2021_2024_clean.csv", index=False)
+historical_load.to_csv(cleaned_dir / "caiso_load_2021_2024_clean.csv", index=False)
