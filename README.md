@@ -78,15 +78,15 @@ Model development followed a chronological evaluation design:
 ### Seasonal-Naive Benchmarks
 Two simple benchmarks were first evaluated:
 
-\[
+$$
 \hat{L}_t^{(24)} = L_{t-24}
-\]
+$$
 
 and
 
-\[
-\hat{L}_t^{(168)} = L_{t-168}.
-\]
+$$
+\hat{L}_t^{(168)} = L_{t-168}
+$$
 
 The 24-hour seasonal-naive forecast substantially outperformed the weekly benchmark and provided the main baseline for evaluating more sophisticated models.
 
