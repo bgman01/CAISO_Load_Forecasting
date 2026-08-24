@@ -5,15 +5,15 @@ This project develops and evaluates hourly electricity load forecasting models f
 
 To build the initial models, 2021–2023 CAISO data was used for training and 2024 as an out-of-sample test year. After comparing model performance, the best initial models were retrained using data through 2024 and evaluated against a separate 2025 holdout year.
 
-The final Random Forest was the best performing model which was evaluated on Mean Absolute Error (MAE), Root Mean Squared Error (RMSE), and Mean Absolute Percentage Error (MAPE):
+The Random Forest was the best performing model and was evaluated on Mean Absolute Error (MAE), Root Mean Squared Error (RMSE), and Mean Absolute Percentage Error (MAPE):
 - **MAE:** 717 MW
 - **RMSE:** 1,012 MW
 - **MAPE:** 2.77%
 
-Forecast accuracy by month, hour, and high-demand periods were generated to identify where the model succeeds and fails at a more granular level than the previously described aggregated evaluation metrics.
+Forecast errors were analyzed by month, hour, and peak demand periods to identify where the model succeeds and fails at a more granular level than the previously described aggregated evaluation metrics.
 
 ## Data
-Hourly CAISO load data cover 2021–2025 and include system load as well as load for the major CAISO service territories:
+Hourly CAISO load data ([CAISO data](https://www.caiso.com/library/historical-ems-hourly-load/)) cover 2021–2025 and include system load as well as load for the major CAISO service territories:
 
 - Pacific Gas & Electric (PG&E)
 - Southern California Edison (SCE)
@@ -106,7 +106,7 @@ Hourly temperature observations were subsequently added to capture weather-relat
 ### Regional level Model
 Because California weather and electricity demand vary geographically, separate regression models were developed for the major CAISO service territories.
 
-Regional forecasts used service-territory-specific lagged loads and weather observations from representative cities. The individual regional forecasts were then summed to produce a bottom-up CAISO system forecast.
+Regional forecasts used service-territory-specific lagged loads and weather observations from representative cities. The individual regional forecasts were then summed to produce a total CAISO system forecast.
 
 ### Random Forest
 A Random Forest was used as a nonlinear forecasting model with the following predictors:
@@ -134,22 +134,22 @@ Models were initially compared using 2024 as an out-of-sample test year after tr
 | Basic OLS | 995 | 1,382 |
 | OLS + Hour × Month | 988 | 1,373 |
 | OLS + Weather | 954 | 1,302 |
-| Regional Bottom-Up OLS | 849 | 1,132 |
-| **Random Forest** | **773** | **1,104** |
+| Regional Level OLS | 849 | 1,132 |
+| Random Forest | 773 | 1,104 |
 
-The Random Forest produced the lowest MAE and RMSE during model development. Its MAE was approximately **40% lower than the 24-hour seasonal-naive benchmark**.
+The Random Forest produced the lowest MAE and RMSE among all models tested. Its MAE was approximately 40% lower than the 24-hour seasonal-naive benchmark.
 
-The regional bottom-up model also performed substantially better than the aggregate weather regression, suggesting that explicitly modeling geographic differences in load and weather provided useful predictive information.
+The regional levelmodel also performed substantially better than the aggregate weather regression, suggesting that explicitly modeling geographic differences in load and weather provided useful predictive information.
 
 ## Final 2025 Holdout Validation
 After model development, the regional OLS and Random Forest approaches were retrained using data through 2024 and evaluated on the separate 2025 holdout year.
 
 | Model | MAE (MW) | RMSE (MW) | MAPE |
 |---|---:|---:|---:|
-| Regional Bottom-Up OLS | 815 | 1,098 | 3.20% |
-| **Random Forest** | **717** | **1,012** | **2.77%** |
+| Regional Level OLS | 815 | 1,098 | 3.20% |
+| Random Forest | 717 | 1,012 | 2.77% |
 
-The Random Forest remained the strongest model on the 2025 holdout data, reducing MAE by approximately **12%** relative to the regional OLS model.
+The Random Forest remained the strongest model on the 2025 holdout data, reducing MAE by approximately 12% relative to the regional OLS model.
 
 Its 2025 performance was also similar to—and slightly better than—its 2024 test-year performance, providing evidence that the model generalized well to a subsequent year.
 
@@ -165,7 +165,7 @@ Monthly MAPE ranged from approximately 2.36% to 3.80%.
 - Lowest MAPE: October - 2.36%
 - Highest MAPE: March — 3.80%
 
-March and May produced larger errors than most summer and winter months, suggesting that transitional periods may be more difficult to forecast.
+March and May produced larger errors than most summer and winter months. A possible explanation is that there is greater load and weather variablitity during seasonal transition months which was not adequately captured by the model.
 
 ### Error by Hour
 ![Random Forest MAPE by hour](output/Figure_15_rf_mape_hourly.png)
