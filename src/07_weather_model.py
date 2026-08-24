@@ -5,7 +5,7 @@ import statsmodels.formula.api as smf
 
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
-project_dir = Path.cwd()
+project_dir = Path(__file__).resolve().parents[1]
 cleaned_file = project_dir / "data" / "caiso_loads" / "cleaned" / "historical_data" / "caiso_load_2021_2024_clean.csv"
 weather_file = project_dir / "data" / "weather" / "california_weather_2021_2024.csv"
 
@@ -24,14 +24,16 @@ historical_load["month"] = historical_load["date"].dt.month
 historical_load["lag_24"] = historical_load["caiso"].shift(24)
 historical_load["lag_168"] = historical_load["caiso"].shift(168)
 
-historical_load["temp_sacramento_sq"] = historical_load["temp_sacramento"] ** 2
-historical_load["temp_san_jose_sq"] = historical_load["temp_san_jose"] ** 2
-historical_load["temp_los_angeles_sq"] = historical_load["temp_los_angeles"] ** 2
-historical_load["temp_san_diego_sq"] = historical_load["temp_san_diego"] ** 2
+historical_load["temp_sacramento_sq"] = historical_load["temp_sacramento"]**2  #model city temp with quadratic term (expect non-linear response)
+historical_load["temp_san_jose_sq"] = historical_load["temp_san_jose"]**2
+historical_load["temp_los_angeles_sq"] = historical_load["temp_los_angeles"]**2
+historical_load["temp_san_diego_sq"] = historical_load["temp_san_diego"]**2
 
+#define training and test dfs
 train = historical_load[historical_load["date"].dt.year <= 2023].copy()
 test_2024 = historical_load[historical_load["date"].dt.year == 2024].copy()
 
+#fit the model including hr*month interaction term, 24hr and 168hr lags, and city temps
 model_weather = smf.ols("caiso ~ C(hr) * C(month) + C(day_of_week) + lag_24 + lag_168 + temp_sacramento + temp_san_jose + temp_los_angeles + temp_san_diego", data=train).fit()
 test_2024["forecast_weather"] = model_weather.predict(test_2024)
 mae_weather = mean_absolute_error(test_2024["caiso"], test_2024["forecast_weather"])

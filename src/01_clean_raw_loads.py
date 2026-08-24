@@ -1,9 +1,9 @@
 from pathlib import Path
 import pandas as pd
 
-project_dir = Path.cwd()
+project_dir = Path(__file__).resolve().parents[1]
 historical_dir = project_dir / "data" / "caiso_loads" / "raw" / "historical_data"
-cleaned_dir = project_dir / "data" / "caiso_loads" / "raw" / "validation_data"
+cleaned_dir = project_dir / "data" / "caiso_loads" / "cleaned" / "historical_data"
 
 files = sorted(historical_dir.glob("*.xlsx"))
 

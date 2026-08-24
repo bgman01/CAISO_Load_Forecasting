@@ -12,8 +12,13 @@ historical_load["timestamp"] = pd.to_datetime(historical_load["timestamp"])
 cities = {
     "sacramento": (38.58, -121.49),
     "san_jose": (37.33, -121.91),
+    "fresno": (36.74, -119.79),
+
     "los_angeles": (34.05, -118.24),
-    "san_diego": (32.76, -117.17)
+    "riverside": (33.98, -117.38),
+    
+    "san_diego": (32.76, -117.17),
+    "poway": (32.96, -117.04)
 }
 
 weather_data = []
@@ -46,7 +51,6 @@ for city, coordinates in cities.items():
     #add timestamp to city df
     city_weather["timestamp"] = pd.to_datetime(city_weather["timestamp"])
     weather_data.append(city_weather)
-
    
 weather = weather_data[0]
 
@@ -54,16 +58,5 @@ weather = weather_data[0]
 for city_weather in weather_data[1:]:
     weather = weather.merge(city_weather, on="timestamp", how="outer")
 
-print(weather.head())
-print(weather.shape)
-print(weather.isna().sum())
-
-
-weather_file = project_dir / "data" / "weather" / "california_weather_2021_2024.csv"
-
-print("Duplicate timestamps:", historical_load["timestamp"].duplicated().sum())
-duplicates = historical_load[historical_load["timestamp"].duplicated(keep=False)].sort_values("timestamp")
-print(duplicates[["timestamp", "date", "hr", "caiso"]])
-
-weather_duplicates = weather[weather["timestamp"].duplicated(keep=False)].sort_values("timestamp")
-print(weather_duplicates)
+weather_file = project_dir / "data" / "weather" / "regional_weather_2021_2024.csv"
+weather.to_csv(weather_file, index=False)

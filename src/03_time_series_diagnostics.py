@@ -5,7 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 #use cleaned load data
-project_dir = Path.cwd()
+project_dir = Path(__file__).resolve().parents[1]
 cleaned_file = project_dir / "data" / "caiso_loads" / "cleaned" / "historical_data" / "caiso_load_2021_2024_clean.csv"
 
 historical_load = pd.read_csv(cleaned_file)
@@ -58,6 +58,7 @@ print("p-value:", kpss_result[1])
 
 #check differenced load (Load_{t} - Load_{t-24}) 
 #differencing can sometimes help give us a stationary series
+#FIGURE 11: 24 HOUR DIFFERENCED ACF
 historical_load["diff_24"] = historical_load["caiso"].diff(24)
 print(historical_load[["date", "hr", "caiso", "diff_24"]].head(30))
 plt.figure(figsize=(12, 5))
@@ -70,6 +71,7 @@ plt.tight_layout()
 plt.show()
 
 #check differenced load (Load_{t} - Load_{t-168}) 
+#FIGURE 12: 168 HOUR DIFFERENCED ACF
 historical_load["diff_168"] = historical_load["caiso"].diff(168)
 plt.figure(figsize=(12, 5))
 plot_acf(historical_load["diff_168"].dropna(), lags=200)

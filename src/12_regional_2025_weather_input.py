@@ -3,17 +3,19 @@ import pandas as pd
 import requests
 
 project_dir = Path(__file__).resolve().parents[1]
-cleaned_file = project_dir / "data" / "caiso_loads" / "cleaned" / "historical_data" / "caiso_load_2021_2024_clean.csv"
-historical_load = pd.read_csv(cleaned_file)
-historical_load["date"] = pd.to_datetime(historical_load["date"])
-historical_load["timestamp"] = pd.to_datetime(historical_load["timestamp"])
+cleaned_validation = project_dir / "data" / "caiso_loads" / "cleaned" / "validation_data" / "caiso_load_2025_clean.csv"
 
 #use open-meteo data (free access weather API)
 cities = {
     "sacramento": (38.58, -121.49),
     "san_jose": (37.33, -121.91),
+    "fresno": (36.74, -119.79),
+
     "los_angeles": (34.05, -118.24),
-    "san_diego": (32.76, -117.17)
+    "riverside": (33.98, -117.38),
+    
+    "san_diego": (32.76, -117.17),
+    "poway": (32.96, -117.04)
 }
 
 weather_data = []
@@ -27,8 +29,8 @@ for city, coordinates in cities.items():
     params = {
         "latitude": latitude,
         "longitude": longitude,
-        "start_date": "2021-01-01",
-        "end_date": "2024-12-31",
+        "start_date": "2025-01-01",
+        "end_date": "2025-12-31",
         "hourly": "temperature_2m",
         "temperature_unit": "fahrenheit",
         "timezone": "America/Los_Angeles"
@@ -46,7 +48,6 @@ for city, coordinates in cities.items():
     #add timestamp to city df
     city_weather["timestamp"] = pd.to_datetime(city_weather["timestamp"])
     weather_data.append(city_weather)
-
    
 weather = weather_data[0]
 
@@ -54,16 +55,9 @@ weather = weather_data[0]
 for city_weather in weather_data[1:]:
     weather = weather.merge(city_weather, on="timestamp", how="outer")
 
+weather_file = project_dir / "data" / "weather" / "regional_weather_2025.csv"
+weather.to_csv(weather_file, index=False)
+
 print(weather.head())
-print(weather.shape)
+print(weather.tail())
 print(weather.isna().sum())
-
-
-weather_file = project_dir / "data" / "weather" / "california_weather_2021_2024.csv"
-
-print("Duplicate timestamps:", historical_load["timestamp"].duplicated().sum())
-duplicates = historical_load[historical_load["timestamp"].duplicated(keep=False)].sort_values("timestamp")
-print(duplicates[["timestamp", "date", "hr", "caiso"]])
-
-weather_duplicates = weather[weather["timestamp"].duplicated(keep=False)].sort_values("timestamp")
-print(weather_duplicates)

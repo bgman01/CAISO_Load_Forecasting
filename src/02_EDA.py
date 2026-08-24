@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 #use cleaned load data
-project_dir = Path.cwd()
+project_dir = Path(__file__).resolve().parents[1]
 cleaned_file = project_dir / "data" / "caiso_loads" / "cleaned" / "historical_data" / "caiso_load_2021_2024_clean.csv"
 
 historical_load = pd.read_csv(cleaned_file)
@@ -141,5 +141,5 @@ plt.show()
 
 #investigate the individual hours where peak load occurred each month
 peak_indices = historical_load.groupby(["year", "month"])["caiso"].idxmax()
-monthly_peak_hours = historical_load.loc[peak_indices, ["year", "month", "date", "hr", "caiso"]]
-print(monthly_peak_hours.sort_values("hr"))
+monthly_peak_hours = (historical_load.loc[peak_indices,["year", "month", "date", "hr", "caiso"]].sort_values(["year", "month"]).reset_index(drop=True))
+print(monthly_peak_hours)
