@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-project_dir = Path(__file__).resolve().parents[1]
+project_dir = Path(__file__).resolve().parents[2]
 results_file = (project_dir  / "data" / "caiso_loads" / "cleaned" / "validation_data" / "caiso_forecasts_2025.csv")
 results = pd.read_csv(results_file)
 

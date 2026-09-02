@@ -1,7 +1,7 @@
 from pathlib import Path
 import pandas as pd
 
-project_dir = Path(__file__).resolve().parents[1]
+project_dir = Path(__file__).resolve().parents[2]
 validation_dir = project_dir / "data" / "caiso_loads" / "raw" / "validation_data"
 cleaned_dir = project_dir / "data" / "caiso_loads" / "cleaned" / "validation_data"
 

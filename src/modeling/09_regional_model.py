@@ -4,9 +4,9 @@ import numpy as np
 import statsmodels.formula.api as smf
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
-project_dir = Path(__file__).resolve().parents[1]
+project_dir = Path(__file__).resolve().parents[2]
 cleaned_file = project_dir / "data" / "caiso_loads" / "cleaned" / "historical_data" / "caiso_load_2021_2024_clean.csv"
-weather_file = project_dir / "data" / "weather" / "regional_weather_2021_2024.csv"
+weather_file = project_dir / "data" / "weather" / "historical" / "regional_weather_2021_2024.csv"
 
 historical_load = pd.read_csv(cleaned_file)
 weather = pd.read_csv(weather_file)

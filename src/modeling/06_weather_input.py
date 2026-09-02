@@ -2,7 +2,7 @@ from pathlib import Path
 import pandas as pd
 import requests
 
-project_dir = Path(__file__).resolve().parents[1]
+project_dir = Path(__file__).resolve().parents[2]
 cleaned_file = project_dir / "data" / "caiso_loads" / "cleaned" / "historical_data" / "caiso_load_2021_2024_clean.csv"
 historical_load = pd.read_csv(cleaned_file)
 historical_load["date"] = pd.to_datetime(historical_load["date"])
@@ -59,7 +59,10 @@ print(weather.shape)
 print(weather.isna().sum())
 
 
-weather_file = project_dir / "data" / "weather" / "california_weather_2021_2024.csv"
+weather_file = project_dir / "data" / "weather" / "historical" / "california_weather_2021_2024.csv"
+weather.to_csv(weather_file, index=False)
+
+print(f"Saved weather data to: {weather_file}")
 
 print("Duplicate timestamps:", historical_load["timestamp"].duplicated().sum())
 duplicates = historical_load[historical_load["timestamp"].duplicated(keep=False)].sort_values("timestamp")

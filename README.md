@@ -1,26 +1,31 @@
-# CAISO Hourly Load Forecasting
+# CAISO Hourly Load Forecasting with a Fabric SQL Extension
 
 ## Project Overview
-This project develops and evaluates hourly electricity load forecasting models for the California Independent System Operator (CAISO). Using historical CAISO load (in MW), calendar effects, and hourly weather observations from selected cities across California, I compared seasonal-naive benchmarks, regression approaches, a regional level model, and a Random Forest model.
 
-To build the initial models, 2021–2023 CAISO data was used for training and 2024 as an out-of-sample test year. After comparing model performance, the best initial models were retrained using data through 2024 and evaluated against a separate 2025 holdout year.
+This project develops and evaluates hourly electricity-load forecasting models for the California Independent System Operator (CAISO). Using historical CAISO load (MW), calendar effects, and hourly weather observations from selected California cities, I compared seasonal-naive benchmarks, regression approaches, a regional-level model, and a Random Forest model.
 
-The Random Forest was the best performing model and was evaluated on Mean Absolute Error (MAE), Root Mean Squared Error (RMSE), and Mean Absolute Percentage Error (MAPE):
+The original forecasting analysis is implemented in Python. I later added a Microsoft Fabric component to work with the same data in OneLake and Warehouse SQL. That work takes the original Excel exports through bronze, silver, and gold tables, then uses SQL for basic data checks and exploration. The forecasting models themselves are still built and evaluated in Python.
+
+For initial model development, 2021–2023 CAISO data was used for training and 2024 was used as a chronological development year for comparing models. After selecting the strongest approaches, the models were retrained using data through 2024 and evaluated against a separate 2025 holdout year.
+
+The Random Forest was the best-performing model and was evaluated using Mean Absolute Error (MAE), Root Mean Squared Error (RMSE), and Mean Absolute Percentage Error (MAPE):
+
 - **MAE:** 717 MW
 - **RMSE:** 1,012 MW
 - **MAPE:** 2.77%
 
-Forecast errors were analyzed by month, hour, and peak demand periods to identify where the model succeeds and fails at a more granular level than the previously described aggregated evaluation metrics.
+Forecast errors were also analyzed by month, hour, and peak-demand periods to identify where the model succeeds and fails at a more granular level than the aggregate evaluation metrics.
 
 ## Data
-Hourly CAISO load data ([CAISO data](https://www.caiso.com/library/historical-ems-hourly-load/)) cover 2021–2025 and include system load as well as load for the major CAISO service territories:
+
+Hourly CAISO load data from the [CAISO Historical EMS Hourly Load library](https://www.caiso.com/library/historical-ems-hourly-load/) cover 2021–2025 and include total system load plus load for major CAISO service territories:
 
 - Pacific Gas & Electric (PG&E)
 - Southern California Edison (SCE)
 - San Diego Gas & Electric (SDG&E)
 - Valley Electric Association (VEA)
 
-Historical weather data were retrieved from the Open-Meteo archive API ([link](https://open-meteo.com/)) for several California locations:
+Historical weather data were retrieved from the [Open-Meteo Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api) for several California locations:
 
 - Sacramento
 - San Jose
@@ -30,10 +35,88 @@ Historical weather data were retrieved from the Open-Meteo archive API ([link](h
 - San Diego
 - Poway
 
-Hourly temperature observations were merged with CAISO load data by timestamp.
+Hourly temperature observations were merged with CAISO load data by timestamp for the Python modeling analysis.
+
+The data periods have distinct roles throughout the project:
+
+- **Historical period:** 2021–2024. Used for exploratory analysis, model development, and the 2024 comparison year.
+- **Validation period:** 2025. Held out from model selection and used for the final evaluation.
+
+## Fabric and SQL
+
+I used Fabric to keep the original CAISO Excel files as raw OneLake files, do the basic transformations in SQL, and explore the resulting tables.
+
+```text
+CAISO Excel exports
+    -> OneLake bronze files (unchanged .xlsx files)
+    -> Fabric notebook staging CSVs
+    -> Warehouse bronze tables
+    -> Warehouse silver tables
+    -> Warehouse gold feature and summary tables
+    -> SQL data-quality checks and exploration
+```
+
+## Fabric workflow
+
+1. Original CAISO `.xlsx` exports are placed in separate OneLake folders for historical and validation data:
+
+   ```text
+   Files/bronze/loads/historical/
+   Files/bronze/loads/validation/
+   ```
+
+2. [`01_stage_caiso_load_data_raw.py`](src/notebooks/01_stage_caiso_load_data_raw.py) is run as a Fabric notebook. It reads the Excel exports, adds the originating `source_file`, and writes raw CSV staging copies. It deliberately does not clean or filter the source rows.
+
+3. The two regional-weather CSVs are placed in the corresponding OneLake bronze folders:
+
+   ```text
+   Files/bronze/weather/historical/regional_weather_2021_2024.csv
+   Files/bronze/weather/validation/regional_weather_2025.csv
+   ```
+
+4. The SQL scripts in [`src/sql`](src/sql) are run in this order:
+
+
+   ```text
+   `03_create_schemas.sql` -> Creates the `bronze`, `silver`, and `gold` schemas. 
+   `04_load_bronze_caiso_loads.sql` -> Uses `OPENROWSET(BULK...)` to read staging CSVs into raw load tables. 
+   `05_load_bronze_weather.sql` -> Uses `OPENROWSET(BULK...)` to read the regional-weather CSVs into raw weather tables. 
+   `06_transform_silver_loads.sql` -> Combines historical and validation load rows, removes export footer rows, and applies data types. 
+   `07_transform_silver_weather.sql` -> Combines and types the weather data. 
+   `08_build_gold_load_features.sql` -> Creates hourly load, calendar, and lag features. 
+   `09_build_gold_load_weather.sql` -> Adds weather features where the hourly timestamps are reliable matches. 
+   `10_build_gold_daily_summary.sql` -> Creates daily average, minimum, maximum, peak, and rolling average summaries. 
+   `11_explore_loads.sql` -> Contains SQL exploration queries. 
+   ```
+
+
+### Fabric tables
+
+- **Bronze:** raw files and raw-text Warehouse tables. The original CAISO Excel files stay unchanged in OneLake.
+- **Silver:** historical and validation load rows are combined but keep a `source_stage` label. Blank rows and `CAISO Public` footers are removed, and the fields are converted to usable SQL types.
+- **Gold:** load features, load-and-weather features, and daily summaries used for analysis.
+
+The first exploration query confirmed the expected complete periods in Fabric:
+
+| Source stage | Hourly rows | Date range |
+|---|---:|---|
+| Historical | 35,064 | 2021-01-01 to 2024-12-31 |
+| Validation | 8,760 | 2025-01-01 to 2025-12-31 |
+
+### Daylight saving time
+
+CAISO has 23 observations on spring daylight-saving days and 25 on fall days, while the weather CSVs have 24 timestamp labels every day. I handled that mismatch as follows:
+
+- `hour_instance` preserves both valid repeated DST transition load observations (days where clocks 'fall back')
+- `source_stage` keeps the historical and final validation periods identifiable after they are combined in silver.
+- The gold table leaves weather blank on transition dates instead of forcing a questionable match.
+- The 24 & 168 he observation lags are previous observations around DST, not necessarily the same clock hour.
+
+This keeps the special dates visible instead of pretending every day has the same number of hours. 
 
 ## Exploratory Analysis
-As expected CAISO load displays strong daily and seasonal structure.
+
+As expected, CAISO load displays strong daily and seasonal structure.
 
 ![CAISO hourly load](output/Figure_1_load_series.png)
 
@@ -45,13 +128,14 @@ The shape of the daily load curve also varies significantly by season. Summer mo
 
 ![Average hourly load by month](output/Figure_6_hourly_load_monthly.png)
 
-Monthly peak demand shows substantial yearly variability, including the extreme event on September 6, 2022 where total system load peaked above 51,000 MW.
+Monthly peak demand shows substantial yearly variability, including the extreme event on September 6, 2022, when total system load peaked above 51,000 MW.
 
 ![Monthly peak CAISO load](output/Figure_7_monthly_peaks.png)
 
-These patterns motivated the use of calendar effects, seasonal interactions, lagged load, and regional weather predictors in subsequent forecasting models.
+These patterns motivated the use of calendar effects, seasonal interactions, lagged load, and regional weather predictors. I also recreated several of these exploration questions in `11_explore_loads.sql`.
 
-## Time-Series Diagnostics
+## Time Series Diagnostics
+
 CAISO load exhibits strong temporal dependence.
 
 | Lag | Correlation |
@@ -76,6 +160,7 @@ Model development followed a chronological evaluation design:
 **2021–2023 training data → 2024 model comparison → retrain through 2024 → 2025 final holdout validation**
 
 ### Seasonal-Naive Benchmarks
+
 Two simple benchmarks were first evaluated:
 
 $$
@@ -91,6 +176,7 @@ $$
 The 24-hour seasonal-naive forecast substantially outperformed the weekly benchmark and provided the main baseline for evaluating more sophisticated models.
 
 ### Regression Models
+
 The first regression models incorporated:
 
 - hour of day
@@ -103,12 +189,14 @@ An hour-by-month interaction was then introduced because exploratory analysis sh
 
 Hourly temperature observations were subsequently added to capture weather-related load variation.
 
-### Regional level Model
+### Regional-Level Model
+
 Because California weather and electricity demand vary geographically, separate regression models were developed for the major CAISO service territories.
 
 Regional forecasts used service-territory-specific lagged loads and weather observations from representative cities. The individual regional forecasts were then summed to produce a total CAISO system forecast.
 
 ### Random Forest
+
 A Random Forest was used as a nonlinear forecasting model with the following predictors:
 
 - hour
@@ -122,10 +210,9 @@ Unlike the regression models, the Random Forest can capture nonlinear relationsh
 
 The 24-hour lag was by far the model's most important predictor, consistent with the strong daily autocorrelation observed during the time-series analysis.
 
----
-
 ## 2024 Model Development Results
-Models were initially compared using 2024 as an out-of-sample test year after training on 2021–2023 data.
+
+Models were compared on 2024 after training on 2021–2023 data.
 
 | Model | MAE (MW) | RMSE (MW) |
 |---|---:|---:|
@@ -134,50 +221,54 @@ Models were initially compared using 2024 as an out-of-sample test year after tr
 | Basic OLS | 995 | 1,382 |
 | OLS + Hour × Month | 988 | 1,373 |
 | OLS + Weather | 954 | 1,302 |
-| Regional Level OLS | 849 | 1,132 |
+| Regional-Level OLS | 849 | 1,132 |
 | Random Forest | 773 | 1,104 |
 
 The Random Forest produced the lowest MAE and RMSE among all models tested. Its MAE was approximately 40% lower than the 24-hour seasonal-naive benchmark.
 
-The regional levelmodel also performed substantially better than the aggregate weather regression, suggesting that explicitly modeling geographic differences in load and weather provided useful predictive information.
+The regional-level model also performed substantially better than the aggregate weather regression, suggesting that explicitly modeling geographic differences in load and weather provided useful predictive information.
 
 ## Final 2025 Holdout Validation
+
 After model development, the regional OLS and Random Forest approaches were retrained using data through 2024 and evaluated on the separate 2025 holdout year.
 
 | Model | MAE (MW) | RMSE (MW) | MAPE |
 |---|---:|---:|---:|
-| Regional Level OLS | 815 | 1,098 | 3.20% |
+| Regional-Level OLS | 815 | 1,098 | 3.20% |
 | Random Forest | 717 | 1,012 | 2.77% |
 
 The Random Forest remained the strongest model on the 2025 holdout data, reducing MAE by approximately 12% relative to the regional OLS model.
 
-Its 2025 performance was also similar to—and slightly better than—its 2024 test-year performance, providing evidence that the model generalized well to a subsequent year.
-
+Its 2025 performance was also similar to—and slightly better than—its 2024 comparison-year performance, providing evidence that the model generalized well to a subsequent year.
 
 ## Forecast Error Analysis
+
 Average forecast accuracy varied considerably by season and hour.
 
 ### Error by Month
+
 ![Random Forest MAPE by month](output/Figure_14_rf_error_monthly.png)
 
 Monthly MAPE ranged from approximately 2.36% to 3.80%.
 
-- Lowest MAPE: October - 2.36%
+- Lowest MAPE: October — 2.36%
 - Highest MAPE: March — 3.80%
 
-March and May produced larger errors than most summer and winter months. A possible explanation is that there is greater load and weather variablitity during seasonal transition months which was not adequately captured by the model.
+March and May produced larger errors than most summer and winter months. A possible explanation is that load and weather variability are greater during seasonal transition months and were not fully captured by the model.
 
 ### Error by Hour
+
 ![Random Forest MAPE by hour](output/Figure_15_rf_mape_hourly.png)
 
 Forecast accuracy was highest overnight and early in the morning. MAPE increased substantially during daytime and afternoon hours.
 
-- Lowest hourly MAPE: 06:00 — **1.60**%
-- Highest hourly MAPE: 15:00 — **4.71**%
+- Lowest hourly MAPE: 06:00 — **1.60%**
+- Highest hourly MAPE: 15:00 — **4.71%**
 
 The model therefore performs substantially better during relatively stable overnight periods than during the more variable daytime load cycle.
 
 ### Performance During High-Demand Periods
+
 Across the top 5% of 2025 load hours:
 
 | Metric | Result |
@@ -196,31 +287,32 @@ The annual system peak occurred on August 21, 2025 at 19:00:
 - Underforecast: **3,039 MW**
 - Percentage error: **6.92%**
 
-![Actual vs Random Forest forecast during 2025 peak week](output/Figure_16_peak_week_forecast.png)
+![Actual vs. Random Forest forecast during 2025 peak week](output/Figure_16_peak_week_forecast.png)
 
 Although the model tracks the overall load pattern during the peak week, the annual maximum illustrates the increased difficulty of accurately forecasting extreme demand.
 
 ## Key Findings
+
 1. Recent load is the strongest predictor of near-term CAISO demand. Load at the same hour one day earlier had a correlation of 0.93 with current load and dominated Random Forest feature importance.
-
 2. Calendar and seasonal effects materially improve on simple persistence forecasts. Regression models reduced forecast error by more than 20% relative to the 24-hour seasonal-naive benchmark.
-
 3. Weather improves forecast accuracy. Adding hourly temperature observations further reduced both MAE and RMSE.
-
 4. Regional modeling adds predictive value. Modeling major service territories separately produced substantially lower forecast error than a single aggregate weather regression.
-
 5. The Random Forest produced the strongest overall performance. It achieved a 2025 holdout MAPE of **2.77%**.
-
 6. Forecast performance deteriorates during the most operationally important periods. Errors were larger during high-demand hours, including a 6.92% underforecast at the 2025 annual system peak.
+7. The Fabric work adds a SQL version of the data preparation and exploration steps, using bronze, silver, and gold Warehouse tables.
 
 ## Limitations
-Models using weather features in this project use realized hourly weather observations rather than historical weather forecasts.
 
-The reported results should therefore be interpreted as weather-conditioned forecast performance, rather than a complete reconstruction of CAISO's historical day-ahead forecasting methodology.
+Models using weather features in this project use realized hourly weather observations rather than weather forecasts available at the time of prediction. The reported results should therefore be interpreted as weather-conditioned forecast performance rather than a complete reconstruction of CAISO's historical day-ahead forecasting methodology.
 
-An operational forecasting system would replace observed future temperatures with weather forecasts available at the time each load forecast is produced, and certainly include inputs from more weather stations than the 7 samples used for this project.
+An operational forecasting system would replace observed future temperatures with weather forecasts available at the time each load forecast is produced and would use more weather stations than the seven representative locations used here.
+
+The Fabric tables preserve CAISO's 23- and 25-hour transition days and do not join weather on those dates. A production system would use a fully time-zone-aware timestamp design, such as UTC timestamps plus local-time metadata.
 
 ## Tools
+
+### Forecasting and analysis
+
 - Python
 - pandas
 - NumPy
@@ -229,33 +321,45 @@ An operational forecasting system would replace observed future temperatures wit
 - matplotlib
 - Open-Meteo API
 
+### Fabric and SQL extension
+
+- Microsoft Fabric Lakehouse 
+- Microsoft Fabric Warehouse
+- SQL 
+
 ## Repository Structure
+
 ```text
-CAISO_load_forecasting/
+CAISO_fabric_extension/
 │
-├── data/
+├── data/                       
 │   ├── caiso_loads/
 │   │   ├── raw/
+│   │   ├── raw_csv/
 │   │   └── cleaned/
 │   └── weather/
+│       ├── historical/
+│       └── validation/
 │
-├── output/
+├── output/                     
 │
 ├── src/
-│   ├── 01_clean_raw_loads.py
-│   ├── 02_EDA.py
-│   ├── 03_time_series_diagnostics.py
-│   ├── 04_base_forecasts.py
-│   ├── 05_econometric_model.py
-│   ├── 06_weather_input.py
-│   ├── 07_weather_model.py
-│   ├── 08_regional_weather_input.py
-│   ├── 09_regional_model.py
-│   ├── 10_random_forest_model.py
-│   ├── 11_validation_cleaning.py
-│   ├── 12_regional_2025_weather_input.py
-│   ├── 13_final_validation.py
-│   └── 14_forecast_error_analysis.py
+│   ├── modeling/                 #Original Python data cleaning, modeling, and evaluation scripts
+│   │   ├── 01_clean_raw_loads.py
+│   │   ├── 02_EDA.py
+│   │   ├── ...
+│   │   └── 14_forecast_error_analysis.py
+│   │
+│   ├── notebooks/
+│   │   └── 01_stage_caiso_load_data_raw.py
+│   │
+│   └── sql/
+│       ├── 03_create_schemas.sql
+│       ├── 04_load_bronze_caiso_loads.sql
+│       ├── ...
+│       └── 11_explore_loads.sql
+│
+├── time_series_paper/         #personal academic time series paper covering mathematical foundations of time series as applied to forecasting
 │
 └── README.md
 ```

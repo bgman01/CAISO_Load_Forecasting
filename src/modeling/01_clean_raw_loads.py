@@ -1,7 +1,7 @@
 from pathlib import Path
 import pandas as pd
 
-project_dir = Path(__file__).resolve().parents[1]
+project_dir = Path(__file__).resolve().parents[2]
 historical_dir = project_dir / "data" / "caiso_loads" / "raw" / "historical_data"
 cleaned_dir = project_dir / "data" / "caiso_loads" / "cleaned" / "historical_data"
 
@@ -43,11 +43,11 @@ print(historical_load.isna().sum())
 
 historical_load["date"] = pd.to_datetime(historical_load["date"]) #standardize date
 print(historical_load["date"].min())
-print(historical_load["date"].max()) #date ranges are good, all of 2022 to 2024
+print(historical_load["date"].max()) #date ranges are good, all of 2021 to 2024
 
 #CHECK TIME (HR) COLUMNS
 print(sorted(historical_load["hr"].unique()))
-print(historical_load["hr"].value_counts().sort_index()) #hrs 1 has 1099 unique values, hrs 2 has 1093 corresponding with DST jumps across 3 years
+print(historical_load["hr"].value_counts().sort_index()) #hrs 1 has 1465 unique values, hrs 2 has 1457 corresponding with DST jumps across 4 years
 
 #CHECK IOU + CAISO columns + descriptive stats
 iou_columns = ["pge", "sce", "sdge", "vea", "caiso"]

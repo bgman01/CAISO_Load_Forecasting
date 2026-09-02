@@ -5,11 +5,11 @@ import statsmodels.formula.api as smf
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
-project_dir = Path(__file__).resolve().parents[1]
+project_dir = Path(__file__).resolve().parents[2]
 cleaned_file = project_dir / "data" / "caiso_loads" / "cleaned" / "historical_data" / "caiso_load_2021_2024_clean.csv"
 cleaned_validation = project_dir / "data" / "caiso_loads" / "cleaned" / "validation_data" / "caiso_load_2025_clean.csv"
-weather_file = project_dir / "data" / "weather" / "regional_weather_2021_2024.csv"
-validation_weather_file = project_dir / "data" / "weather" / "regional_weather_2025.csv"
+weather_file = project_dir / "data" / "weather" / "historical" / "regional_weather_2021_2024.csv"
+validation_weather_file = project_dir / "data" / "weather" / "validation" / "regional_weather_2025.csv"
 
 #load all data
 historical_load = pd.read_csv(cleaned_file)
