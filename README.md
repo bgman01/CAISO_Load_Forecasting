@@ -6,9 +6,9 @@ This project develops and evaluates hourly electricity-load forecasting models f
 
 The original forecasting analysis is implemented in Python. I later added a Microsoft Fabric component to work with the same data in OneLake and Warehouse SQL. That work takes the original Excel exports through bronze, silver, and gold tables, then uses SQL for basic data checks and exploration. The forecasting models themselves are still built and evaluated in Python.
 
-For initial model development, 2021–2023 CAISO data was used for training and 2024 was used as a chronological development year for comparing models. After selecting the strongest approaches, the models were retrained using data through 2024 and evaluated against a separate 2025 holdout year.
+For initial model development, 2021–2023 CAISO data was used for training and 2024 was used as a chronological development year for comparing models. After comparing the strongest approaches, the models were retrained using data through 2024 and evaluated against a separate 2025 holdout year.
 
-The Random Forest was the best-performing model and was evaluated using Mean Absolute Error (MAE), Root Mean Squared Error (RMSE), and Mean Absolute Percentage Error (MAPE):
+The Random Forest was the best performing model and was evaluated using Mean Absolute Error (MAE), Root Mean Squared Error (RMSE), and Mean Absolute Percentage Error (MAPE):
 
 - **MAE:** 717 MW
 - **RMSE:** 1,012 MW
