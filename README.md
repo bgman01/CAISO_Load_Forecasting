@@ -12,7 +12,7 @@ The original forecasting analysis is implemented in Python. I later added a Micr
 
 For the initial forecasting model development in Python, 2021–2023 CAISO data was used for training and 2024 was used as a chronological development year for comparing models. After selecting the strongest approaches, the models were retrained using data through 2024 and evaluated against a separate 2025 validation year.
 
-The Random Forest was the best-performing model and was evaluated using Mean Absolute Error (MAE), Root Mean Squared Error (RMSE), and Mean Absolute Percentage Error (MAPE):
+The Random Forest was the best performing model and was evaluated using Mean Absolute Error (MAE), Root Mean Squared Error (RMSE), and Mean Absolute Percentage Error (MAPE):
 
 - **MAE:** 717 MW
 - **RMSE:** 1,012 MW
