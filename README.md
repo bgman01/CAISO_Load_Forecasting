@@ -46,9 +46,9 @@ The data periods have distinct roles throughout the project:
 - **Historical period:** 2021–2024. Used for exploratory analysis, model development, and the 2024 comparison year.
 - **Validation period:** 2025. Held out from model selection and used for the final evaluation.
 
-## Fabric and SQL
+## Fabric, SQL, Power BI
 
-I used Fabric to keep the original CAISO Excel files as raw OneLake files, do the basic transformations in SQL, and explore the resulting tables.
+I used Fabric to keep the original CAISO Excel files as raw OneLake files, do the basic transformations in SQL, and explore the resulting tables. Finally, I created some Power BI visualizations of various breakdowns of load with different TOU structures.
 
 ```text
 CAISO Excel exports
@@ -91,6 +91,22 @@ CAISO Excel exports
    `10_build_gold_daily_summary.sql` -> Creates daily average, minimum, maximum, peak, and rolling average summaries. 
    `11_explore_loads.sql` -> Contains SQL exploration queries. 
    ```
+
+## Power BI Report
+The Time-of-Use (TOU) periods in this project were defined as an experimental analytical framework for examining when CAISO system load occurs. They were not derived from a cost-of-service study, real tariffs, or a customer bill analysis.
+
+The structure designates late afternoon and evening hours as 'On-Peak' because system demand is known to be elevated during those periods, particularly when solar generation declines. Overnight and selected midday hours are classified as 'Super Off-Peak' to represent periods that may offer greater opportunity for flexible electricity use when solar generation is high. Remaining hours are classified as 'Off-Peak'.
+
+### TOU periods:
+- **On-Peak:** 4-9pm every day (HR ending 17-21)
+- **Off-Peak:** weekdays 6am-10am, 2-4pm, 9pm-12am; weekends 2-4pm, 9pm-12am
+- **Super Off-Peak:** weekdays 12-6am, 10am-2pm; weekends 12am-2pm
+
+The Power BI report evaluates the resulting load allocation by period, month, and year. This helps assess whether the defined periods capture meaningful differences in observed load patterns.
+
+A production TOU rate design study would require much more additional information, including hourly energy and capacity costs, procurement costs, usage by customer class, revenue requirements, customer bill impacts, affordability considerations, and analysis of customer behavioral responses to rate changes.
+
+[View Power BI report](PowerBI/PowerBI_System-Load-and-TOU.pdf)
 
 ### Fabric tables
 
@@ -348,7 +364,11 @@ CAISO_load_forecasting/
 │       └── validation/                 #Weather data (2025)  
 │
 ├── output/                             #Python exploratory and forecast figures
-│
+│  
+|
+|── PowerBI/ 
+|     └── PowerBI_System-Load-and-TOU.pdf       #Power BI visualization PDF output
+|
 ├── src/
 │   ├── modeling/                        #Original Python data cleaning, modeling, and evaluation scripts
 │   │   ├── 01_clean_raw_loads.py
